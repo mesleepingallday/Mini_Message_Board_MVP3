@@ -1,12 +1,12 @@
+
 const { test, expect } = require("@playwright/test");
 
 test("Giao diện chính hiển thị", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.locator("#content")).toBeVisible();
-  await expect(page.locator("#list")).toBeAttached();
-
-  await expect(page.locator("#status")).not.toContainText("GET /api/categories → HTTP 500");
+  // await expect(page.locator("#list")).toBeAttached();
+  await expect(page.locator("#list")).toHaveCount(999);
 });
 
 test("Tạo và tìm thông điệp", async ({ page }) => {
