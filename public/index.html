@@ -1,0 +1,474 @@
+<!doctype html>
+<html
+    lang="vi"
+>
+    <head>
+        <meta
+            charset="utf-8"
+        />
+        <meta
+            name="viewport"
+            content="width=device-width,initial-scale=1"
+        />
+        <title>
+            Mini
+            Message
+            Board
+            MVP
+            3
+        </title>
+        <style>
+            body {
+                font: 16px
+                    system-ui;
+                margin: 0;
+                background: #f1f6fb;
+                color: #16324b;
+            }
+            main {
+                max-width: 850px;
+                margin: 28px
+                    auto;
+                padding: 22px;
+                background: white;
+                border-radius: 16px;
+            }
+            h1 {
+                color: #0758a3;
+            }
+            button,
+            input,
+            select {
+                padding: 9px;
+                margin: 3px;
+                border-radius: 7px;
+                border: 1px
+                    solid
+                    #b1c7da;
+            }
+            button {
+                background: #1261af;
+                color: white;
+                cursor: pointer;
+            }
+            li {
+                padding: 12px;
+                border-bottom: 1px
+                    solid
+                    #ddd;
+            }
+            .meta {
+                color: #64748b;
+                font-size: 13px;
+            }
+            #status {
+                white-space: pre-wrap;
+                background: #eaf3ff;
+                padding: 12px;
+                border-radius: 8px;
+            }
+            form {
+                display: flex;
+                flex-wrap: wrap;
+            }
+            form
+                input {
+                flex: 1;
+                min-width: 200px;
+            }
+        </style>
+    </head>
+    <body>
+        <main>
+            <h1>
+                Mini
+                Message
+                Board
+                ·
+                MVP
+                3
+            </h1>
+            <p>
+                Client
+                →
+                Express
+                →
+                SQLite
+                ·
+                JOIN
+                ·
+                CRUD
+                ·
+                Search
+                ·
+                Reactions
+            </p>
+            <form
+                id="frm"
+            >
+                <input
+                    id="content"
+                    required
+                    maxlength="500"
+                    placeholder="Nội dung thông điệp"
+                /><select
+                    id="category"
+                ></select
+                ><button>
+                    Gửi
+                    (POST)
+                </button>
+            </form>
+            <p>
+                <input
+                    id="q"
+                    placeholder="Tìm kiếm..."
+                /><button
+                    id="search"
+                >
+                    GET
+                    /
+                    Tìm</button
+                ><button
+                    id="stats"
+                >
+                    Thống
+                    kê
+                </button>
+            </p>
+            <div
+                id="status"
+                role="status"
+            >
+                Sẵn
+                sàng
+            </div>
+            <ul
+                id="list"
+            ></ul>
+            <button
+                id="prev"
+            >
+                Trang
+                trước</button
+            ><span
+                id="page"
+            ></span
+            ><button
+                id="next"
+            >
+                Trang
+                sau
+            </button>
+            <pre
+                id="result"
+            ></pre>
+        </main>
+        <script>
+            let p = 1,
+                pages = 1;
+            const status =
+                    document.querySelector(
+                        "#status",
+                    ),
+                list =
+                    document.querySelector(
+                        "#list",
+                    );
+            async function request(
+                url,
+                opts,
+            ) {
+                const r =
+                    await fetch(
+                        url,
+                        opts,
+                    );
+                let data =
+                    r.status ===
+                    204
+                        ? null
+                        : await r.json();
+                status.textContent =
+                    `${opts?.method || "GET"} ${url} → HTTP ${r.status}` +
+                    (r.ok
+                        ? ""
+                        : " · " +
+                          (data?.error ||
+                              "Lỗi"));
+                if (
+                    !r.ok
+                )
+                    throw Error(
+                        data?.error ||
+                            "HTTP error",
+                    );
+                return data;
+            }
+            async function load() {
+                try {
+                    let data =
+                        await request(
+                            `/api/messages?page=${p}&limit=5&q=${encodeURIComponent(document.querySelector("#q").value)}`,
+                        );
+                    pages =
+                        Math.max(
+                            1,
+                            data
+                                .pagination
+                                .pages,
+                        );
+                    document.querySelector(
+                        "#page",
+                    ).textContent =
+                        `Trang ${p}/${pages} · ${data.pagination.total} tin`;
+                    list.replaceChildren();
+                    for (const m of data.data) {
+                        const li =
+                                document.createElement(
+                                    "li",
+                                ),
+                            t =
+                                document.createElement(
+                                    "div",
+                                ),
+                            meta =
+                                document.createElement(
+                                    "div",
+                                ),
+                            del =
+                                document.createElement(
+                                    "button",
+                                ),
+                            edit =
+                                document.createElement(
+                                    "button",
+                                ),
+                            like =
+                                document.createElement(
+                                    "button",
+                                );
+                        t.textContent =
+                            m.message;
+                        meta.className =
+                            "meta";
+                        meta.textContent = `#${m.id} · ${m.author} · ${m.category || "Chưa phân loại"} · ${m.reactions} cảm xúc`;
+                        del.textContent =
+                            "Xóa";
+                        del.onclick =
+                            async () => {
+                                try {
+                                    await request(
+                                        "/api/messages/" +
+                                            m.id,
+                                        {
+                                            method: "DELETE",
+                                        },
+                                    );
+                                    await load();
+                                } catch (e) {
+                                    alert(
+                                        e.message,
+                                    );
+                                }
+                            };
+                        edit.textContent =
+                            "Sửa";
+                        edit.onclick =
+                            async () => {
+                                const val =
+                                    prompt(
+                                        "Nhập nội dung mới",
+                                        m.message,
+                                    );
+                                if (
+                                    val ===
+                                    null
+                                )
+                                    return;
+                                try {
+                                    await request(
+                                        "/api/messages/" +
+                                            m.id,
+                                        {
+                                            method: "PATCH",
+                                            headers:
+                                                {
+                                                    "Content-Type":
+                                                        "application/json",
+                                                },
+                                            body: JSON.stringify(
+                                                {
+                                                    message:
+                                                        val,
+                                                },
+                                            ),
+                                        },
+                                    );
+                                    await load();
+                                } catch (e) {
+                                    alert(
+                                        e.message,
+                                    );
+                                }
+                            };
+                        like.textContent =
+                            "👍 Like";
+                        like.onclick =
+                            async () => {
+                                await request(
+                                    `/api/messages/${m.id}/reaction`,
+                                    {
+                                        method: "PUT",
+                                        headers:
+                                            {
+                                                "Content-Type":
+                                                    "application/json",
+                                            },
+                                        body: JSON.stringify(
+                                            {
+                                                userId: 2,
+                                                reactionType:
+                                                    "like",
+                                            },
+                                        ),
+                                    },
+                                );
+                                await load();
+                            };
+                        li.append(
+                            t,
+                            meta,
+                            edit,
+                            like,
+                            del,
+                        );
+                        list.append(
+                            li,
+                        );
+                    }
+                } catch (e) {
+                    status.textContent =
+                        e.message;
+                }
+            }
+            document.querySelector(
+                "#frm",
+            ).onsubmit =
+                async (
+                    e,
+                ) => {
+                    e.preventDefault();
+                    try {
+                        await request(
+                            "/api/messages",
+                            {
+                                method: "POST",
+                                headers:
+                                    {
+                                        "Content-Type":
+                                            "application/json",
+                                    },
+                                body: JSON.stringify(
+                                    {
+                                        message:
+                                            document.querySelector(
+                                                "#content",
+                                            )
+                                                .value,
+                                        userId: 2,
+                                        categoryId:
+                                            Number(
+                                                document.querySelector(
+                                                    "#category",
+                                                )
+                                                    .value,
+                                            ),
+                                    },
+                                ),
+                            },
+                        );
+                        document.querySelector(
+                            "#content",
+                        ).value =
+                            "";
+                        p = 1;
+                        await load();
+                    } catch (e) {
+                        alert(
+                            e.message,
+                        );
+                    }
+                };
+            document.querySelector(
+                "#search",
+            ).onclick =
+                () => {
+                    p = 1;
+                    load();
+                };
+            document.querySelector(
+                "#prev",
+            ).onclick =
+                () => {
+                    if (
+                        p >
+                        1
+                    ) {
+                        p--;
+                        load();
+                    }
+                };
+            document.querySelector(
+                "#next",
+            ).onclick =
+                () => {
+                    if (
+                        p <
+                        pages
+                    ) {
+                        p++;
+                        load();
+                    }
+                };
+            document.querySelector(
+                "#stats",
+            ).onclick =
+                async () =>
+                    (document.querySelector(
+                        "#result",
+                    ).textContent =
+                        JSON.stringify(
+                            await request(
+                                "/api/stats/categories",
+                            ),
+                            null,
+                            2,
+                        ));
+            (async () => {
+                const cats =
+                    await request(
+                        "/api/categories",
+                    );
+                for (const c of cats) {
+                    const o =
+                        document.createElement(
+                            "option",
+                        );
+                    o.value =
+                        c.id;
+                    o.textContent =
+                        c.name;
+                    document
+                        .querySelector(
+                            "#category",
+                        )
+                        .append(
+                            o,
+                        );
+                }
+                await load();
+            })();
+        </script>
+    </body>
+</html>

@@ -1,0 +1,9 @@
+node_modules/
+data/
+*.db
+*.db-*
+*.bak
+.env
+playwright-report/
+test-results/
+public-report/
