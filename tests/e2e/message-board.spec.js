@@ -5,8 +5,7 @@ test("Giao diện chính hiển thị", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.locator("#content")).toBeVisible();
-  // await expect(page.locator("#list")).toBeAttached();
-  await expect(page.locator("#list")).toHaveCount(999);
+  await expect(page.locator("#list")).toBeAttached();
 });
 
 test("Tạo và tìm thông điệp", async ({ page }) => {
